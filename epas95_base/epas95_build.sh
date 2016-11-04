@@ -46,5 +46,3 @@ sudo sed -i "s/^#max_wal_senders = 0/max_wal_senders = 5/" ${PGDATA}/postgresql.
 
 sudo systemctl enable ppas-${PGMAJOR}.service
 sudo systemctl start ppas-${PGMAJOR}.service
-
-psql -p ${PGPORT} -c "CREATE USER repuser REPLICATION" ${PGDATABASE} ${PGUSER}
