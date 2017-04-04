@@ -1,5 +1,6 @@
 #!/bin/bash
 
+NODE_NUM=${1}
 PGMAJOR=9.5
 
 # Script to be run on to-be standby
@@ -30,6 +31,7 @@ mkdir -p ${DATADIR}
 pg_basebackup -U repuser -h ${MASTER_HOST} -D ${DATADIR} -xPR
 
 # Fix up confs so that this machine is a valid EFM standby
+sed -i "s/'user/'application_name=db${NODE_NUM} user/" ${DATADIR}/recovery.conf
 echo "trigger_file='/tmp/efm_standby_trigger'" >> ${DATADIR}/recovery.conf
 if [[ `grep -c "^hot_standby" ${DATADIR}/postgresql.conf` -gt 0 ]]
 then
