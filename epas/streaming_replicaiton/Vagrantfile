@@ -14,33 +14,37 @@ Vagrant.configure(2) do |config|
   # boxes at https://atlas.hashicorp.com/search.
   # config.vm.box = "centos/7"
 
-  # Configure PEM Server
-  config.vm.define "pemserver" do |master|
+  config.vm.define "master" do |master|
     master.vm.box = "centos/7"
-    master.vm.hostname = "pemserver"
+    master.vm.hostname = "master"
     master.vm.network :private_network, ip: "10.0.3.100"
-    master.vm.provider :vmware_fusion do |v|
+    master.vm.provider :virtualbox do |v|
       v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
       v.customize ["modifyvm", :id, "--memory", 512]
-      v.customize ["modifyvm", :id, "--name", "pem"]
+      v.customize ["modifyvm", :id, "--name", "master"]
     end
-    master.vm.provision :shell, path: "./build_pemserver.sh"
+    master.vm.provision :shell, path: "../../build_scripts/epas_build.sh",
+                                env: {"YUMUSERNAME" => "",
+                                      "YUMPASSWORD" => "",
+                                      "PGMAJOR" => "10"}
   end
 
-  # Configure servers that will be running with agents
-  start_ind = 1
-  num_nodes = 2
-  (start_ind..num_nodes).each do |i| 
-    config.vm.define "pem#{i}" do |master|
-      master.vm.box = "centos/7"
-      master.vm.hostname = "pem#{i}"
-      master.vm.network :private_network, ip: "10.0.3.10#{i}"
-      master.vm.provider :vmware_fusion do |v|
+  (1..2).each do |i|
+    node_id = "db#{i}"
+    config.vm.define node_id do |node|
+      node.vm.box = "centos/7"
+      node.vm.hostname = "standby#{node_id}"
+      node.vm.network :private_network, ip: "10.0.3.10#{i}"
+      node.vm.provider :virtualbox do |v|
         v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
         v.customize ["modifyvm", :id, "--memory", 512]
-        v.customize ["modifyvm", :id, "--name", "pem#{i}"]
+        v.customize ["modifyvm", :id, "--name", "standby#{node_id}"]
       end
-      master.vm.provision :shell, path: "./build_pemagent.sh", args: "#{i}"
+      node.vm.provision :shell, path: "../../build_scripts/epas_build.sh",
+                                env: {"YUMUSERNAME" => "",
+                                      "YUMPASSWORD" => "",
+                                      "PGMAJOR" => "10"}
+      node.vm.provision :shell, path: "./streaming_replication_build.sh", args: "#{i}"
     end
   end
 
@@ -90,4 +94,8 @@ Vagrant.configure(2) do |config|
   # config.push.define "atlas" do |push|
   #   push.app = "YOUR_ATLAS_USERNAME/YOUR_APPLICATION_NAME"
   # end
+
+  # Enable provisioning with a shell script. Additional provisioners such as
+  # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
+  # documentation for more information about their specific syntax and use.
 end

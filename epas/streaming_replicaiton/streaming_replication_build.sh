@@ -1,7 +1,7 @@
 #!/bin/bash
 
 NODE_NUM=${1}
-PGMAJOR=9.5
+PGMAJOR=10
 
 # Script to be run on to-be standby
 MASTER_HOST=10.0.3.100

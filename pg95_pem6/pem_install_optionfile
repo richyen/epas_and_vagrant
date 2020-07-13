@@ -1,9 +1,0 @@
-existing-user=
-existing-password=
-prefix=/usr/pem-6.0
-pghost=127.0.0.1
-pgport=5432
-pguser=postgres
-pgpassword=abc123
-servicename=postgresql-9.5
-cidr-address=0.0.0.0/0

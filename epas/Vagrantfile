@@ -14,32 +14,19 @@ Vagrant.configure(2) do |config|
   # boxes at https://atlas.hashicorp.com/search.
   # config.vm.box = "centos/7"
 
-  config.vm.define "master" do |master|
+  config.vm.define "epas" do |master|
     master.vm.box = "centos/7"
     master.vm.hostname = "master"
-    master.vm.network :private_network, ip: "10.0.3.100"
+    master.vm.network :private_network, ip: "10.0.3.10"
     master.vm.provider :virtualbox do |v|
       v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
       v.customize ["modifyvm", :id, "--memory", 512]
-      v.customize ["modifyvm", :id, "--name", "master"]
+      v.customize ["modifyvm", :id, "--name", "epas"]
     end
-    master.vm.provision :shell, path: "./epas95_build.sh"
-  end
-
-  (1..2).each do |i|
-    node_id = "db#{i}"
-    config.vm.define node_id do |node|
-      node.vm.box = "centos/7"
-      node.vm.hostname = "#{node_id}"
-      node.vm.network :private_network, ip: "10.0.3.10#{i}"
-      node.vm.provider :virtualbox do |v|
-        v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-        v.customize ["modifyvm", :id, "--memory", 512]
-        v.customize ["modifyvm", :id, "--name", "#{node_id}"]
-      end
-      node.vm.provision :shell, path: "./epas95_build.sh"
-      node.vm.provision :shell, path: "./streaming_replication_build.sh", args: "#{i}"
-    end
+    master.vm.provision :shell, path: "../build_scripts/epas_build.sh",
+                                env: {"YUMUSERNAME" => "",
+                                      "YUMPASSWORD" => "",
+                                      "PGMAJOR" => "12"}
   end
 
   # Disable automatic box update checking. If you disable this, then
@@ -88,8 +75,4 @@ Vagrant.configure(2) do |config|
   # config.push.define "atlas" do |push|
   #   push.app = "YOUR_ATLAS_USERNAME/YOUR_APPLICATION_NAME"
   # end
-
-  # Enable provisioning with a shell script. Additional provisioners such as
-  # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
-  # documentation for more information about their specific syntax and use.
 end

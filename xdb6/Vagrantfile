@@ -14,43 +14,41 @@ Vagrant.configure(2) do |config|
   # boxes at https://atlas.hashicorp.com/search.
   # config.vm.box = "centos/7"
 
-  config.vm.define "master" do |master|
+  # Configure non-MDNs
+  start_ind = 1
+  num_nodes = 2
+  (start_ind...num_nodes).each do |i| 
+    config.vm.define "pub#{i}" do |master|
+      master.vm.box = "centos/7"
+      master.vm.hostname = "master#{i}"
+      master.vm.network :private_network, ip: "10.0.3.10#{i}"
+      master.vm.provider :virtualbox do |v|
+        v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+        v.customize ["modifyvm", :id, "--memory", 512]
+      end
+    master.vm.provision :shell, path: "../build_scripts/epas_build.sh",
+                                env: {"YUMUSERNAME" => "",
+                                      "YUMPASSWORD" => "",
+                                      "PGMAJOR" => "12"}
+    end
+  end
+
+  # Configure MDN
+  config.vm.define "mdn" do |master|
     master.vm.box = "centos/7"
-    master.vm.hostname = "master"
+    master.vm.hostname = "mdnmaster"
     master.vm.network :private_network, ip: "10.0.3.100"
     master.vm.provider :virtualbox do |v|
       v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
       v.customize ["modifyvm", :id, "--memory", 512]
-      v.customize ["modifyvm", :id, "--name", "master"]
     end
-    master.vm.provision :shell, path: "./epas95_efm2_build.sh"
-    master.vm.provision :shell, path: "./set_as_master.sh"
-  end
-
-  config.vm.define "standby" do |standby|
-    standby.vm.box = "centos/7"
-    standby.vm.hostname = "standby"
-    standby.vm.network :private_network, ip: "10.0.3.101"
-    standby.vm.provider :virtualbox do |v|
-      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-      v.customize ["modifyvm", :id, "--memory", 512]
-      v.customize ["modifyvm", :id, "--name", "standby"]
-    end
-    standby.vm.provision :shell, path: "./epas95_efm2_build.sh"
-    standby.vm.provision :shell, path: "./set_as_standby.sh"
-  end
-
-  config.vm.define "witness" do |witness|
-    witness.vm.box = "centos/7"
-    witness.vm.hostname = "witness"
-    witness.vm.network :private_network, ip: "10.0.3.102"
-    witness.vm.provider :virtualbox do |v|
-      v.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
-      v.customize ["modifyvm", :id, "--memory", 512]
-      v.customize ["modifyvm", :id, "--name", "witness"]
-    end
-    witness.vm.provision :shell, path: "./epas95_efm2_build.sh"
-    witness.vm.provision :shell, path: "./set_as_witness.sh"
+    master.vm.provision :shell, path: "../build_scripts/epas_build.sh",
+                                env: {"YUMUSERNAME" => "",
+                                      "YUMPASSWORD" => "",
+                                      "PGMAJOR" => "12"}
+    master.vm.provision :shell, path: "../build_scripts/xdb6_build.sh",
+                                env: {"PGDATA" => "/var/lib/edb/as12/data"}
+    #master.vm.provision :shell, path: "./build_xdb_mmr_publication.sh", :args => "#{num_nodes}"
   end
 
   # Disable automatic box update checking. If you disable this, then
@@ -99,8 +97,4 @@ Vagrant.configure(2) do |config|
   # config.push.define "atlas" do |push|
   #   push.app = "YOUR_ATLAS_USERNAME/YOUR_APPLICATION_NAME"
   # end
-
-  # Enable provisioning with a shell script. Additional provisioners such as
-  # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
-  # documentation for more information about their specific syntax and use.
 end
