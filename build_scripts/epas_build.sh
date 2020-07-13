@@ -2,7 +2,12 @@
 
 ### Script to install EDB Postgres Advanced Server
 
-PGMAJOR=12
+### NOTE: the following vars should be passed via Vagrantfile:
+###   - PGMAJOR
+###   - OSVER
+###   - YUMUSERNAME
+###   - YUMPASSWORD
+
 PGPORT=5432
 PGDATABASE=edb
 PGUSER=enterprisedb
@@ -19,7 +24,12 @@ yum -y install edb-as${PGMAJOR/./}-server.x86_64 sudo
 
 echo 'root:root'|chpasswd
 
-su - enterprisedb -c "/usr/edb/as${PGMAJOR}/bin/initdb -D ${PGDATA}"
+if [[ ${OSVER} -eq 6 ]]; then
+  service edb-as-${PGMAJOR} initdb
+  sed -i "s/^PGPORT.*/PGPORT=${PGPORT}/" /etc/sysconfig/edb/as${PGMAJOR}/edb-as-${PGMAJOR}.sysconfig
+else
+  su - enterprisedb -c "/usr/edb/as${PGMAJOR}/bin/initdb -D ${PGDATA}"
+fi
 
 echo "export PGPORT=${PGPORT}"         >> /etc/profile.d/pg_env.sh && \
 echo "export PGDATABASE=${PGDATABASE}" >> /etc/profile.d/pg_env.sh && \
@@ -37,5 +47,9 @@ sed -e "s/^port = .*/port = ${PGPORT}/" \
     -e "s/^#wal_keep_segments = 0/wal_keep_segments = 500/" \
     -e "s/^#max_wal_senders = 0/max_wal_senders = 5/" -i ${PGDATA}/postgresql.conf
 
-sudo systemctl enable edb-as-${PGMAJOR}.service
-sudo systemctl start edb-as-${PGMAJOR}.service
+if [[ ${OSVER} -eq 6 ]]; then
+  sudo service edb-as-${PGMAJOR} start
+else
+  sudo systemctl enable edb-as-${PGMAJOR}.service
+  sudo systemctl start edb-as-${PGMAJOR}.service
+fi
